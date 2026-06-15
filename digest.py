@@ -71,7 +71,11 @@ def reset_seen():
 def fetch_papers(top_n, seen=None):
     """HF Daily Papers를 upvote 내림차순으로 정렬해, 이미 본 것을 제외하고 상위 top_n개 반환."""
     seen = seen or set()
-    req = urllib.request.Request(HF_API, headers={"User-Agent": "hf-digest/1.0"})
+    headers = {"User-Agent": "hf-digest/1.0"}
+    hf_token = os.environ.get("HF_KEY")
+    if hf_token:
+        headers["Authorization"] = f"Bearer {hf_token}"
+    req = urllib.request.Request(HF_API, headers=headers)
     with urllib.request.urlopen(req, timeout=60) as resp:
         data = json.loads(resp.read().decode("utf-8"))
 
