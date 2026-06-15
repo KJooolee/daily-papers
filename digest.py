@@ -31,7 +31,7 @@ from email.utils import formataddr
 
 HF_API = "https://huggingface.co/api/daily_papers?limit=100"
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
-MODEL = "claude-opus-4-8"
+MODEL = "claude-sonnet-4-6"
 
 # --- 사용자가 원하면 이 키워드 프로필만 고쳐서 관심 주제를 바꿀 수 있습니다 ---
 INTEREST_PROFILE = """유통(retail/distribution)과 물류(logistics/supply chain)의 자동화 및 효율화.
@@ -71,11 +71,7 @@ def reset_seen():
 def fetch_papers(top_n, seen=None):
     """HF Daily Papers를 upvote 내림차순으로 정렬해, 이미 본 것을 제외하고 상위 top_n개 반환."""
     seen = seen or set()
-    headers = {"User-Agent": "hf-digest/1.0"}
-    hf_token = os.environ.get("HF_KEY")
-    if hf_token:
-        headers["Authorization"] = f"Bearer {hf_token}"
-    req = urllib.request.Request(HF_API, headers=headers)
+    req = urllib.request.Request(HF_API, headers={"User-Agent": "hf-digest/1.0"})
     with urllib.request.urlopen(req, timeout=60) as resp:
         data = json.loads(resp.read().decode("utf-8"))
 
@@ -164,6 +160,16 @@ def call_claude(papers):
     return json.loads(text.strip())
 
 
+def build_no_papers_html(today):
+    """신규 논문이 하나도 없을 때(모두 이미 확인) 보내는 간단한 메일. Claude 호출 없음."""
+    return f"""<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:680px;margin:0 auto;color:#1a1a1a">
+<h2 style="margin-bottom:4px">📄 HF Daily Papers · 유통/물류 다이제스트</h2>
+<p style="color:#666;margin-top:0">{today}</p>
+<p style="background:#f5f5f5;padding:16px;border-radius:8px">오늘은 새로 확인할 신규 논문이 없었습니다. (상위 논문이 모두 이미 확인한 논문)</p>
+<p style="color:#aaa;font-size:12px;border-top:1px solid #eee;padding-top:12px">자동 생성 · HuggingFace Daily Papers</p>
+</div>"""
+
+
 def build_html(parsed, total_reviewed, today):
     relevant = parsed.get("relevant", [])
     if not relevant:
@@ -209,10 +215,16 @@ def send_mail(html, today):
     msg["To"] = to_addr
     msg.attach(MIMEText(html, "html", "utf-8"))
 
-    with smtplib.SMTP(host, port, timeout=60) as server:
-        server.starttls()
-        server.login(user, password)
-        server.sendmail(user, [to_addr], msg.as_string())
+    # 포트 465면 SSL, 그 외(587 등)는 STARTTLS. GitHub Actions에서는 465(SSL)가 더 안정적이다.
+    if port == 465:
+        with smtplib.SMTP_SSL(host, port, timeout=60) as server:
+            server.login(user, password)
+            server.sendmail(user, [to_addr], msg.as_string())
+    else:
+        with smtplib.SMTP(host, port, timeout=60) as server:
+            server.starttls()
+            server.login(user, password)
+            server.sendmail(user, [to_addr], msg.as_string())
 
 
 def main():
@@ -240,7 +252,10 @@ def main():
     print(f"[2/5] 상위 {top_n}개 신규 논문 가져오는 중...")
     papers = fetch_papers(top_n, seen=seen)
     if not papers:
-        print("새 논문이 없습니다 (모두 이미 확인함). 메일을 보내지 않습니다.")
+        print("새 논문이 없습니다 (모두 이미 확인함). Claude 호출 없이 '없음' 메일을 보냅니다.")
+        html = build_no_papers_html(today)
+        send_mail(html, today)
+        print("Done (신규 논문 없음).")
         return
     print(f"      신규 {len(papers)}개.")
 
