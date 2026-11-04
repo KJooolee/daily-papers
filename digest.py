@@ -3,12 +3,17 @@
 
   python3 digest.py fetch [N]   미확인 논문 중 upvote 상위 N개(기본 15)를 JSON으로 출력
   python3 digest.py mark ID...  해당 논문을 확인 처리
-  python3 digest.py reset       확인 기록 초기화(주말용)
+  python3 digest.py reset       확인 기록 초기화(월요일 시작 시)
+  python3 digest.py append      stdin의 JSONL(논문당 한 줄)을 archive/papers.jsonl에 추가.
+                                라벨은 archive/vocab.json으로 검증하며, 하나라도 틀리면 아무것도 쓰지 않는다.
+                                입력: {"id","title","upvotes","field","problems","methods","relevant"} (date 생략 시 오늘 KST)
 """
 import json, sys, urllib.request
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 SEEN = Path(__file__).with_name("seen_papers.json")
+ARCHIVE = Path(__file__).with_name("archive")
 API = "https://huggingface.co/api/daily_papers?limit=100"
 
 
@@ -44,5 +49,32 @@ elif cmd == "mark":
     save(load() | set(args))
 elif cmd == "reset":
     save(set())
+elif cmd == "append":
+    v = json.loads((ARCHIVE / "vocab.json").read_text(encoding="utf-8"))
+    F, P, M = ({x["name"] for x in v[k]} for k in ("fields", "problems", "methods"))
+    path = ARCHIVE / "papers.jsonl"
+    have = {json.loads(l)["id"] for l in path.read_text(encoding="utf-8").splitlines() if l.strip()}
+    today = datetime.now(timezone(timedelta(hours=9))).date().isoformat()
+    rows, errs = [], []
+    for l in sys.stdin.read().splitlines():
+        if not l.strip():
+            continue
+        r = json.loads(l)
+        ps, ms = r.get("problems", []), r.get("methods", [])
+        bad = [k for k, ok in (("field", r.get("field") in F),
+                               ("problems", 1 <= len(ps) <= 2 and set(ps) <= P),
+                               ("methods", 1 <= len(ms) <= 3 and set(ms) <= M)) if not ok]
+        if bad:
+            errs.append(f"{r.get('id')}: {bad}")
+        elif r["id"] not in have:
+            have.add(r["id"])
+            rows.append({"date": r.get("date", today), "id": r["id"], "title": r["title"],
+                         "upvotes": r.get("upvotes", 0), "field": r["field"], "problems": ps,
+                         "methods": ms, "relevant": bool(r.get("relevant"))})
+    if errs:
+        sys.exit("vocab.json에 없는 라벨 또는 개수 오류 — vocab을 먼저 갱신하세요:\n" + "\n".join(errs))
+    with path.open("a", encoding="utf-8") as f:
+        f.writelines(json.dumps(x, ensure_ascii=False) + "\n" for x in rows)
+    print(f"appended {len(rows)}")
 else:
     sys.exit(__doc__)
