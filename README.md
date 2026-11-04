@@ -7,7 +7,7 @@
 Anthropic API 키·SMTP·GitHub Actions 불필요.
 
 ## 구성
-- `digest.py` : 표준 라이브러리 헬퍼. `fetch [N]` / `mark ID...` / `reset` / `append`(stdin JSONL, vocab 검증)
+- `digest.py` : 표준 라이브러리 헬퍼. `fetch [N]` / `mark ID...` / `reset` / `append`(stdin JSONL, vocab 검증) / `missing`(확인 기록엔 있는데 아카이브에 없는 논문)
 - `seen_papers.json` : 중복 방지용 확인 기록 (매주 월요일 초기화)
 - `archive/papers.jsonl` : 장기 아카이브 (초기화 없음). 한 줄에 논문 하나
   `{date, id, title, upvotes, field, problems, methods, relevant}`
@@ -15,15 +15,17 @@ Anthropic API 키·SMTP·GitHub Actions 불필요.
 - 루틴 프롬프트 : Claude Code 스케줄 작업(daily-papers-digest)에 저장됨
 
 ## 동작 (평일 08:55 KST)
+- **월~금 시작** : `missing`으로 이전 실행의 아카이브 누락분 확인 (월요일은 reset 전에)
 - **월** : `reset` 후 이어서 평소처럼 처리 (아카이브는 초기화하지 않음)
-- **월~금** : `fetch` → vocab 읽기 → 15편 분류 → 연관 논문 선별·Slack 발송 → `mark` + `append` → 커밋/푸시
+- **월~금** : `fetch` → vocab 읽기 → 15편 + 누락분 분류 → 연관 논문 선별·Slack 발송 → `mark` + `append` → 커밋/푸시
+  (누락분은 Slack·mark 대상이 아니며, date는 보충한 날로 기록)
 
 ## 동향 집계 기준
 - 월별·3개월 이동 추세 : 분야, 문제 상위군(7), 기법 상위군(8)
 - 세부 문제·기법 : 분기 누적 (분기 누적 5편 미만은 병합 후보 표시, 병합은 사용자 확인 후)
 - HF Daily 상위 논문은 표본이므로 "HF Daily에서 주목받는 흐름"으로 해석
-- 시드(2026-07-17~11-03)는 과거 메일의 **연관 논문 106편만** 포함(relevant=true).
-  이후는 15편 전부라 표본 기준이 다르므로, 경계 전후 비교는 `relevant=true`끼리 한다.
+- **2026-11-02까지**는 과거 메일의 연관 논문만(relevant=true) 들어 있고, **2026-11-03부터**는 검토한 논문 전부다
+  (11-03은 메일·Slack 두 차례 검토분 30편). 표본 기준이 다르므로 경계 전후 비교는 `relevant=true`끼리 한다.
 
 ## 커스터마이징
 - 관심 주제·검토 개수·발송 형식 : 스케줄 작업의 프롬프트 수정

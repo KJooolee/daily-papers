@@ -7,6 +7,7 @@
   python3 digest.py append      stdin의 JSONL(논문당 한 줄)을 archive/papers.jsonl에 추가.
                                 라벨은 archive/vocab.json으로 검증하며, 하나라도 틀리면 아무것도 쓰지 않는다.
                                 입력: {"id","title","upvotes","field","problems","methods","relevant"} (date 생략 시 오늘 KST)
+  python3 digest.py missing     확인 기록에는 있는데 아카이브에 없는 논문을 fetch와 같은 형식의 JSON으로 출력
 """
 import json, sys, urllib.request
 from datetime import datetime, timedelta, timezone
@@ -26,6 +27,11 @@ def load():
 
 def save(ids):
     SEEN.write_text(json.dumps({"ids": sorted(ids)}, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def archived():
+    t = (ARCHIVE / "papers.jsonl").read_text(encoding="utf-8")
+    return {json.loads(l)["id"] for l in t.splitlines() if l.strip()}
 
 
 cmd, args = (sys.argv[1] if len(sys.argv) > 1 else ""), sys.argv[2:]
@@ -53,7 +59,7 @@ elif cmd == "append":
     v = json.loads((ARCHIVE / "vocab.json").read_text(encoding="utf-8"))
     F, P, M = ({x["name"] for x in v[k]} for k in ("fields", "problems", "methods"))
     path = ARCHIVE / "papers.jsonl"
-    have = {json.loads(l)["id"] for l in path.read_text(encoding="utf-8").splitlines() if l.strip()}
+    have = archived()
     today = datetime.now(timezone(timedelta(hours=9))).date().isoformat()
     rows, errs = [], []
     for l in sys.stdin.read().splitlines():
@@ -76,5 +82,17 @@ elif cmd == "append":
     with path.open("a", encoding="utf-8") as f:
         f.writelines(json.dumps(x, ensure_ascii=False) + "\n" for x in rows)
     print(f"appended {len(rows)}")
+elif cmd == "missing":
+    out = []
+    for pid in sorted(load() - archived()):
+        req = urllib.request.Request(f"https://huggingface.co/api/papers/{pid}", headers={"User-Agent": "hf-digest/1.0"})
+        try:
+            p = json.load(urllib.request.urlopen(req, timeout=60))
+        except Exception as e:
+            print(f"skip {pid}: {e}", file=sys.stderr)
+            continue
+        out.append({"id": pid, "title": (p.get("title") or "").strip(), "abstract": (p.get("summary") or "").strip(),
+                    "upvotes": p.get("upvotes", 0) or 0, "url": f"https://huggingface.co/papers/{pid}"})
+    print(json.dumps(out, ensure_ascii=False, indent=1))
 else:
     sys.exit(__doc__)

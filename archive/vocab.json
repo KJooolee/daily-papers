@@ -111,11 +111,15 @@
   },
   {
    "name": "평가",
-   "def": "에이전트·모델을 현실적이고 믿을 수 있게 재기"
+   "def": "에이전트·모델을 현실적이고 믿을 수 있게 재고 이해하기"
   },
   {
    "name": "역량·체계화",
    "def": "특정 결함보다 전반 역량 확장·연구 정리(논문 유형 성격)"
+  },
+  {
+   "name": "인식·생성 품질",
+   "def": "모델이 보고·만드는 결과의 정확도·품질·일관성·범용성"
   }
  ],
  "problems": [
@@ -362,6 +366,59 @@
     "survey"
    ],
    "excludes": ""
+  },
+  {
+   "name": "생성 품질·일관성",
+   "group": "인식·생성 품질",
+   "def": "이미지·영상·3D 생성의 디테일·충실도·장기 일관성",
+   "aliases": [
+    "fidelity",
+    "temporal consistency",
+    "drift"
+   ],
+   "excludes": "생성 속도·비용은 연산 비용·지연"
+  },
+  {
+   "name": "멀티모달 통합",
+   "group": "인식·생성 품질",
+   "def": "모달리티별로 분절된 모델·표현·추론을 하나로 통합",
+   "aliases": [
+    "unified multimodal",
+    "omni-modal",
+    "modality gap"
+   ],
+   "excludes": ""
+  },
+  {
+   "name": "인식 정확도",
+   "group": "인식·생성 품질",
+   "def": "영상·이미지·3D·문서의 지각·이해·판별 정확도",
+   "aliases": [
+    "perception",
+    "detection",
+    "tracking"
+   ],
+   "excludes": "에이전트 GUI 인식은 GUI 조작 견고성"
+  },
+  {
+   "name": "환경·과제 일반화",
+   "group": "인식·생성 품질",
+   "def": "학습하지 않은 환경·과제·설정으로의 일반화",
+   "aliases": [
+    "generalization",
+    "zero-shot"
+   ],
+   "excludes": "자기 개선의 과적합은 자기 개선 일반화"
+  },
+  {
+   "name": "해석 가능성",
+   "group": "평가",
+   "def": "모델 내부 메커니즘·출력 신호가 무엇을 뜻하는지 규명",
+   "aliases": [
+    "interpretability",
+    "mechanistic"
+   ],
+   "excludes": ""
   }
  ],
  "method_groups": [
@@ -396,6 +453,10 @@
   {
    "name": "모델 구조·효율",
    "def": "아키텍처·서빙·학습 인프라 효율"
+  },
+  {
+   "name": "생성·표현 모델링",
+   "def": "확산·플로, 표현 학습, 3D 표현, 사전학습 모델 전용 등 생성·인식 모델 설계"
   }
  ],
  "methods": [
@@ -551,8 +612,7 @@
    "def": "교사·성공 궤적 지도 미세조정(거부 샘플링 포함)",
    "aliases": [
     "SFT",
-    "rejection sampling fine-tuning",
-    "PEFT"
+    "rejection sampling fine-tuning"
    ]
   },
   {
@@ -815,6 +875,112 @@
    "aliases": [
     "decoupling"
    ]
+  },
+  {
+   "name": "선호 최적화",
+   "group": "학습 알고리즘",
+   "def": "인간·AI 선호 피드백 기반 정렬 학습",
+   "aliases": [
+    "RLHF",
+    "DPO",
+    "preference optimization"
+   ]
+  },
+  {
+   "name": "파라미터 효율 미세조정",
+   "group": "학습 알고리즘",
+   "def": "LoRA·어댑터 등 일부 파라미터만 학습",
+   "aliases": [
+    "LoRA",
+    "PEFT",
+    "adapter"
+   ]
+  },
+  {
+   "name": "평가 이론",
+   "group": "평가·분석",
+   "def": "벤치마크 난이도·측정의 통계적 정식화",
+   "aliases": [
+    "measure theory",
+    "IRT"
+   ]
+  },
+  {
+   "name": "모델 내부 분석",
+   "group": "평가·분석",
+   "def": "어텐션 헤드·표현 등 모델 내부 메커니즘 분석·활용",
+   "aliases": [
+    "probing",
+    "attention heads",
+    "mechanistic interpretability"
+   ]
+  },
+  {
+   "name": "데이터 영향 분석",
+   "group": "데이터·환경 구축",
+   "def": "그래디언트·영향 함수로 학습 데이터의 효과 추적",
+   "aliases": [
+    "influence function",
+    "data attribution"
+   ]
+  },
+  {
+   "name": "토큰 압축·라우팅",
+   "group": "모델 구조·효율",
+   "def": "입력·시각 토큰을 줄이거나 필요할 때만 처리",
+   "aliases": [
+    "token pruning",
+    "token routing"
+   ]
+  },
+  {
+   "name": "확산·플로 모델",
+   "group": "생성·표현 모델링",
+   "def": "확산·플로 매칭 기반 생성과 그 증류",
+   "aliases": [
+    "diffusion",
+    "flow matching",
+    "rectified flow",
+    "DMD"
+   ]
+  },
+  {
+   "name": "사전학습 모델 재활용",
+   "group": "생성·표현 모델링",
+   "def": "사전학습 파운데이션 모델의 사전지식을 다른 과제에 전용",
+   "aliases": [
+    "foundation model priors",
+    "lifting"
+   ]
+  },
+  {
+   "name": "표현 학습",
+   "group": "생성·표현 모델링",
+   "def": "대조·JEPA·임베딩 등 표현 학습",
+   "aliases": [
+    "JEPA",
+    "contrastive learning",
+    "embedding"
+   ]
+  },
+  {
+   "name": "3D 표현",
+   "group": "생성·표현 모델링",
+   "def": "3D 가우시안·메시·궤적 등 3D 표현 설계",
+   "aliases": [
+    "3D Gaussian",
+    "mesh",
+    "3D tracking"
+   ]
+  },
+  {
+   "name": "잠재 추론",
+   "group": "생성·표현 모델링",
+   "def": "언어 대신 연속 잠재 공간에서 추론",
+   "aliases": [
+    "latent reasoning",
+    "continuous thought"
+   ]
   }
  ],
  "candidates": [
@@ -836,6 +1002,10 @@
   {
    "date": "2026-11-04",
    "change": "기법 상위군 8개(method_groups) 도입, 집계 단위·분기 최소 편수(5편) 규칙 추가"
+  },
+  {
+   "date": "2026-11-04",
+   "change": "비에이전트 분야 커버: 문제 상위군 '인식·생성 품질'+세부 5개, 기법 상위군 '생성·표현 모델링'+세부 11개 추가, PEFT 별칭을 파라미터 효율 미세조정으로 이동"
   }
  ]
 }
